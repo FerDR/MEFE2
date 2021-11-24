@@ -8,6 +8,22 @@
     3. Cambiar el codigo para que el error y la cobertura luzcan correctos. 
 */    
 
+double factorial(int n){
+  int fact = 1;
+  for (int i = 1; i<=n; i++)fact = fact*i;
+  return fact;
+}
+
+double meanoneoverx(double mu=10.0){
+  double sofar = 0.0;
+  for (int i=1; i<mu*3; i++){
+    sofar = sofar + exp(-mu)*pow(mu,i)/factorial(i)/i;
+  }
+  return sofar;
+}
+
+
+
 void Uniform_Binned_Fit_TBC(int N=1000) {
 
 // Fill histogram with random numbers, uniform in (0,100).
@@ -148,32 +164,41 @@ for (int iexp = 0; iexp < nToys; ++iexp) {
     Uniform->SetParameter(0,1);
 
     auto resultN = h1->Fit(Uniform,"SQN");    // option Q avoids too much printout
-    auto resultP = h1->Fit(Uniform,"SQN P");  // option N avoids adding function histogram
-    auto resultL = h1->Fit(Uniform,"SQN L"); 
+    auto resultP = h1->Fit(Uniform,"SQN P+");  // option N avoids adding function histogram
+    auto resultL = h1->Fit(Uniform,"SQN L+"); 
     
-    double const_hat_1 = resultN->Parameter(0);//  +1.11;
+    double const_hat_1 = resultN->Parameter(0)+1.13;//-100*meanoneoverx()+10;
     double const_err_1 = resultN->ParError(0);
+    double pval_1 = resultN->Prob();
     // Agregar lo necesario para llenar los histogramas con los pvalores
 
-    double const_hat_2 = resultP->Parameter(0);// -0.479;
+    double const_hat_2 = resultP->Parameter(0)-pow(110,0.5)+10;
     double const_err_2 = resultP->ParError(0);
+    double pval_2 = resultP->Prob();
     // Agregar lo necesario para llenar los histogramas con los pvalores
     
     double const_hat_3 = resultL->Parameter(0);    
-    double const_err_3 = resultL->ParError(0);
+    float const_err_3 = resultL->ParError(0);
+    double pval_3 = resultL->Prob();
     // Agregar lo necesario para llenar los histogramas con los pvalores
     
-    printf("N%7.3f %6.3f   ",const_hat_1,const_err_1);
-    printf("P%7.3f %6.3f   ",const_hat_2,const_err_2);
-    printf("L%7.3f %6.3f\n ",const_hat_3,const_err_3);
+    //printf("N%7.3f %6.3f   ",const_hat_1,const_err_1);
+    //printf("P%7.3f %6.3f   ",const_hat_2,const_err_2);
+    //printf("L%7.3f %6.3f\n ",const_hat_3,const_err_3);
 
 
     htau1->Fill(const_hat_1);
     htau2->Fill(const_hat_2);
     htau3->Fill(const_hat_3);
+    pvalueN->Fill(pval_1);
+    pvalueP->Fill(pval_2);
+    pvalueL->Fill(pval_3);
 
     // Agregar acá los contadores coverage1, coverage2 y coverage3
     // con la condición que corresponda ...
+    if (const_hat_1 - const_err_1 <= N/100.0 and const_hat_1 + const_err_1 >= N/100.0) coverage1++;
+    if (const_hat_2 - const_err_2 <= N/100.0 and const_hat_2 + const_err_2 >= N/100.0) coverage2++;
+    if (const_hat_3 - const_err_3 <= N/100.0 and const_hat_3 + const_err_3 >= N/100.0) coverage3++;
 
 }
 
