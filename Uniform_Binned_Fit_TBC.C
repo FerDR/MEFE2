@@ -169,17 +169,17 @@ for (int iexp = 0; iexp < nToys; ++iexp) {
     
     double const_hat_1 = resultN->Parameter(0)+1.13;//-100*meanoneoverx()+10;
     double const_err_1 = resultN->ParError(0);
-    double pval_1 = resultN->Prob();
+    double pval_1 = TMath::Prob(resultN->MinFcnValue(),resultN->Ndf());
     // Agregar lo necesario para llenar los histogramas con los pvalores
 
     double const_hat_2 = resultP->Parameter(0)-pow(110,0.5)+10;
     double const_err_2 = resultP->ParError(0);
-    double pval_2 = resultP->Prob();
+    double pval_2 = TMath::Prob(resultP->MinFcnValue(),resultP->Ndf());
     // Agregar lo necesario para llenar los histogramas con los pvalores
     
     double const_hat_3 = resultL->Parameter(0);    
     float const_err_3 = resultL->ParError(0);
-    double pval_3 = resultL->Prob();
+    double pval_3 = TMath::Prob(resultL->MinFcnValue(),resultL->Ndf());
     // Agregar lo necesario para llenar los histogramas con los pvalores
     
     //printf("N%7.3f %6.3f   ",const_hat_1,const_err_1);
