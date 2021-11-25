@@ -158,7 +158,7 @@ auto pvalueL = new TH1D("pvalueL","Baker-Cousins p-value",100,0,1);
 for (int iexp = 0; iexp < nToys; ++iexp) {
     h1->Reset();
     Nentries = N ;
-    //Nentries = r.Poisson(N); 
+    Nentries = r.Poisson(N); 
 
     for (int i = 0; i < Nentries; ++i) h1->Fill(r.Uniform(0,100)); 
     Uniform->SetParameter(0,1);
@@ -167,12 +167,12 @@ for (int iexp = 0; iexp < nToys; ++iexp) {
     auto resultP = h1->Fit(Uniform,"SQN P+");  // option N avoids adding function histogram
     auto resultL = h1->Fit(Uniform,"SQN L+"); 
     
-    double const_hat_1 = resultN->Parameter(0)+1.13;//-100*meanoneoverx()+10;
+    double const_hat_1 = resultN->Parameter(0);//+1.13;//-100*meanoneoverx()+10;
     double const_err_1 = resultN->ParError(0);
     double pval_1 = TMath::Prob(resultN->MinFcnValue(),resultN->Ndf());
     // Agregar lo necesario para llenar los histogramas con los pvalores
 
-    double const_hat_2 = resultP->Parameter(0)-pow(110,0.5)+10;
+    double const_hat_2 = resultP->Parameter(0);//-pow(110,0.5)+10;
     double const_err_2 = resultP->ParError(0);
     double pval_2 = TMath::Prob(resultP->MinFcnValue(),resultP->Ndf());
     // Agregar lo necesario para llenar los histogramas con los pvalores
@@ -196,9 +196,13 @@ for (int iexp = 0; iexp < nToys; ++iexp) {
 
     // Agregar acá los contadores coverage1, coverage2 y coverage3
     // con la condición que corresponda ...
-    if (const_hat_1 - const_err_1 <= N/100.0 and const_hat_1 + const_err_1 >= N/100.0) coverage1++;
-    if (const_hat_2 - const_err_2 <= N/100.0 and const_hat_2 + const_err_2 >= N/100.0) coverage2++;
-    if (const_hat_3 - const_err_3 <= N/100.0 and const_hat_3 + const_err_3 >= N/100.0) coverage3++;
+    double tru;
+    tru = 8.87;
+    if (const_hat_1 - const_err_1 <= tru and const_hat_1 + const_err_1 >= tru) coverage1++;
+    tru = 10.483;
+    if (const_hat_2 - const_err_2 <= tru and const_hat_2 + const_err_2 >= tru) coverage2++;
+    tru = N/100.0;
+    if (const_hat_3 - const_err_3 <= tru and const_hat_3 + const_err_3 >= tru) coverage3++;
 
 }
 
