@@ -52,7 +52,7 @@ fLinear->DrawCopy("same");
 fParabo->DrawCopy("same");
 
 c1->Print("Simple_Hipotesis.pdf["); // open file
-c1->Print("Simple_Hipotesis.pdf"); // print canvas
+//c1->Print("Simple_Hipotesis.pdf"); // print canvas, no hace falta esta linea, no?
 gPad->Update();
 //gPad->WaitPrimitive();
 
@@ -65,8 +65,11 @@ gPad->Update();
  
 auto hTestSTD_H0 = new TH1F("hTestSTD_H0","",200,0,50); // histograma donde voy a guardar los chi2 asumiendo H0 verdadera
 auto hTestSTD_H1 = new TH1F("hTestSTD_H1","",200,0,50); // histograma donde voy a guardar los chi2 asumiendo H1 verdadera
-
+auto h_ratio_lin = new TH1F("h_ratio_lin","",400,-50,50);
+auto h_ratio_par = new TH1F("h_ratio_par","",400,-50,50);
 for (int iexp=0; iexp<Nexp; iexp++){
+  double lll;
+  double llp;
   for (int i=0; i<npoints; i++) {
       double x = xx[i];
       ey[i] = 0.5;
@@ -79,58 +82,71 @@ for (int iexp=0; iexp<Nexp; iexp++){
 
    float chi2_H0_Linear = grL->Chisquare(fLinear);  // Calculo chi2 respecto de una recta los puntos generados a partir de la recta
    float chi2_H1_Linear = grP->Chisquare(fLinear);  // Calculo chi2 respecto de recta a los puntos generados a partir de la parabola
+   float chi2_H0_Para = grL->Chisquare(fParabo);
+   float chi2_H1_Para = grP->Chisquare(fParabo);
 
+   float likeratio_Linear = chi2_H0_Linear-chi2_H1_Linear;
+   float likeratio_Para = chi2_H0_Para-chi2_H1_Para;
    hTestSTD_H0 -> Fill(chi2_H0_Linear); // voy llenando un histograma con los chi2 que resultan cuando H0 es cierta
    hTestSTD_H1 -> Fill(chi2_H1_Linear); // voy llenando un histograma con los chi2 que resultan cuando H1 es cierta
-
+   h_ratio_lin->Fill(likeratio_Linear);
+   h_ratio_par->Fill(likeratio_Para);
 }
 
 hTestSTD_H0->SetLineWidth(2);
 hTestSTD_H0->SetLineColor(kBlue);
-
+h_ratio_lin->SetLineWidth(2);
+h_ratio_lin->SetLineColor(kBlue);
 hTestSTD_H1->SetLineWidth(2);
 hTestSTD_H1->SetLineColor(2);
+h_ratio_par->SetLineWidth(2);
+h_ratio_par->SetLineColor(kRed);
    
 /// Calcular Quantiles para STD /////////////////////////////////
 
 TH1F* h;
 double STDerrT1, STDerrT2;
-//double LLRerrT1, LLRerrT2;
+double LLRerrT1, LLRerrT2;
 double xq[1] = {0.95};  // Obtener el quantil 0.95
 double yq[1];           // array donde guardarlo
 
 /// Calcular Quantiles para STD ////////////////////////////////
 
-h = hTestSTD_H0;
+//h = hTestSTD_H0;
+h = h_ratio_lin;
 // Calculo el error tipo 1
 h->GetQuantiles(1,yq,xq); // Busco el cuantil en la distribución obtenida bajo H0 verdadera
 float QuantileSTD = yq[0];
 // Integral a izquierda de la distribución cuando H0 es verdadera
-STDerrT1 = h->Integral(h->FindBin(   0),h->FindBin(QuantileSTD),""); 
+STDerrT1 = h->Integral(h->FindBin(   -50),h->FindBin(QuantileSTD),""); 
 
-h = hTestSTD_H1;
+//h = hTestSTD_H1;
+h = h_ratio_par;
 // Calculo el error tipo 2
 // La integral a izquierda de la distribución cuando H1 es verdadera (usando el mismo cuantil que antes!)
-STDerrT2 = h->Integral(h->FindBin(   0),h->FindBin(QuantileSTD),""); 
+STDerrT2 = h->Integral(h->FindBin(   -50),h->FindBin(QuantileSTD),""); 
 
 printf("\n STD   Corte:%+7.2f   CL:%5.2f    Error T2:%6.3f \n",
        QuantileSTD,STDerrT1/Nexp,STDerrT2/Nexp);
 
 ////////// Dibujar STD //////////////////////////////////////////
 
-auto  XaxisSTD = hTestSTD_H0->GetXaxis();
+//auto  XaxisSTD = hTestSTD_H0->GetXaxis();
+auto XaxisSTD = h_ratio_lin->GetXaxis();
 int   QuantilBinSTD = XaxisSTD->FindBin(QuantileSTD);
 float QuantilModSTD = XaxisSTD->GetBinUpEdge(QuantilBinSTD);
 
 // Crear histogramas de los errores Tipo1 y Tipo2
 
-auto RejRegionSTD_H0 = (TH1F*)hTestSTD_H0->Clone("RejRegionH0");
+//auto RejRegionSTD_H0 = (TH1F*)hTestSTD_H0->Clone("RejRegionH0");
+auto RejRegionSTD_H0 = (TH1F*)h_ratio_lin->Clone("RejRegionH0");
 RejRegionSTD_H0->GetXaxis()->SetRangeUser(QuantilModSTD,50);
 RejRegionSTD_H0->SetFillStyle(3335);
 RejRegionSTD_H0->SetFillColor(4);
 
-auto RejRegionSTD_H1 = (TH1F*)hTestSTD_H1->Clone("RejRegionH1");
-RejRegionSTD_H1->GetXaxis()->SetRangeUser(0,QuantilModSTD);
+//auto RejRegionSTD_H1 = (TH1F*)hTestSTD_H1->Clone("RejRegionH1");
+auto RejRegionSTD_H1 = (TH1F*)h_ratio_par->Clone("RejRegionH0");
+RejRegionSTD_H1->GetXaxis()->SetRangeUser(-50,QuantilModSTD);
 RejRegionSTD_H1->SetFillStyle(3353);
 RejRegionSTD_H1->SetFillColor(2);
 
@@ -139,9 +155,11 @@ RejRegionSTD_H1->SetFillColor(2);
 c1->cd(2);
 gPad->SetGrid();
 
-hTestSTD_H0->Draw();
+//hTestSTD_H0->Draw();
+h_ratio_lin->Draw();
 c1->Print("Simple_Hipotesis.pdf"); // print canvas
-hTestSTD_H1->Draw("same");
+//hTestSTD_H1->Draw("same");
+h_ratio_par->Draw("same");
 c1->Print("Simple_Hipotesis.pdf"); // print canvas
 RejRegionSTD_H0->Draw("same");
 c1->Print("Simple_Hipotesis.pdf"); // print canvas
@@ -158,11 +176,11 @@ gStyle->SetLegendTextSize(0.05);
 auto legend1 = new TLegend(0.7,0.75,0.9,0.89);
 legend1->AddEntry(RejRegionSTD_H0,"Test STD|H0","f");
 legend1->AddEntry(RejRegionSTD_H1,"Test STD|H1","f");
-legend1->Draw();
+legend1->Draw("same");
 c1->Print("Simple_Hipotesis.pdf"); // 'print canvas
 
 // Guarda en el pdf y lo cierra.
-c1->Print("Simple_Hipotesis.pdf");  // print canvas
+//c1->Print("Simple_Hipotesis.pdf");  // print canvas
 c1->Print("Simple_Hipotesis.pdf]"); // close file
 
 // Guarda histogramas para hacer las curvas ROC
