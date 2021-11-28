@@ -5,6 +5,11 @@ double promedio(vector<double> datos,int n=10,double tau = 1){
   return suma;
 }
 
+double mediana(vector<double> datos,int n=10,double tau=1){
+  sort(datos.begin(),datos.end());
+  return (datos[n/2]+datos[(n-1)/2])/2;
+}
+
 double mierda(vector<double> datos,int n=10,double tau = 1){//sumas de las raices n+1-esimas del dato n
   //perdon pero la que sugirieron con 10 datos agarra valores ~10^13, se complica
   double total=0;
@@ -178,6 +183,8 @@ void intervalo(){
   auto gDown = new TGraph(100);
   cinturon(&promedio,string("promedio"),gUp,gDown);
   coverage(&promedio,string("promedio"),gUp,gDown);
+  cinturon(&mediana,string("mediana"),gUp,gDown);
+  coverage(&mediana,string("mediana"),gUp,gDown);
   cinturon(&mierda,string("mierda"),gUp,gDown);
   coverage(&mierda,string("mierda"),gUp,gDown);
   cinturon(&wilks,string("wilks"),gUp,gDown);
