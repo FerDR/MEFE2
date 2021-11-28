@@ -103,23 +103,28 @@ void cinturon(double (*func)(vector<double>,int,double),string name,TGraph*& gUp
   }
   auto gHighs = new TGraph(100,Highs,Taus);
   auto gLows = new TGraph(100,Lows,Taus);
-  auto axis = gHighs->GetXaxis();
-  axis->SetLimits(Lows[0]-0.5,Highs[99]+0.5);
+  auto gRelleno = new TGraph(200);
+  for(int i=0;i<100;i++){
+    gRelleno->SetPoint(i,Highs[i],Taus[i]);
+    gRelleno->SetPoint(i+100,Lows[100-i-1],Taus[100-i-1]);
+  }
+  gRelleno->SetFillStyle(3013);
+  gRelleno->SetFillColor(4);
+  auto gMulti = new TMultiGraph();
+  gMulti->Add(gLows);
+  gMulti->Add(gHighs);
+  gMulti->Add(gRelleno,"f");
   string gTitle = string("Cinturon para estadistico ");
   gTitle += name;
   gTitle += string(";");
   gTitle += name;
   gTitle += string(";#tau");
-  gHighs->SetTitle(gTitle.c_str());
-  gHighs->Draw();
-  gLows->Draw("same");
+  gMulti->SetTitle(gTitle.c_str());
+  gMulti->Draw("a");
   c1->Print(pdfEnd.c_str(),"pdf");
   c1->Clear();
   gUp = gHighs;
   gDown = gLows;
-  //TODO
-  //Chequear cobertura
-  //Hacer lo de -2LnLog(Like/OptLike)
 }
 
 void coverage(double (*func)(vector<double>,int,double),string name,TGraph* gUp,TGraph* gDown,int N=10000,int n=10){
@@ -171,10 +176,10 @@ void intervalo(){
   gROOT->SetBatch(kTRUE);
   auto gUp = new TGraph(100);
   auto gDown = new TGraph(100);
-  //cinturon(&promedio,string("promedio"),gUp,gDown);
-  //coverage(&promedio,string("promedio"),gUp,gDown);
-  //cinturon(&mierda,string("mierda"),gUp,gDown);
-  //coverage(&mierda,string("mierda"),gUp,gDown);
+  cinturon(&promedio,string("promedio"),gUp,gDown);
+  coverage(&promedio,string("promedio"),gUp,gDown);
+  cinturon(&mierda,string("mierda"),gUp,gDown);
+  coverage(&mierda,string("mierda"),gUp,gDown);
   cinturon(&wilks,string("wilks"),gUp,gDown);
   coverage(&wilks,string("wilks"),gUp,gDown);
 }
