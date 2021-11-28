@@ -1,23 +1,31 @@
-double promedio(vector<double> datos,int n=10){
+double promedio(vector<double> datos,int n=10,double tau = 1){
   double suma=0;
   for(int i=0;i<n;i++)suma = suma+datos[i];
   suma = suma/n;
   return suma;
 }
 
-double mierda(vector<double> datos,int n=10){//sumas de las raices n+1-esimas del dato n
+double mierda(vector<double> datos,int n=10,double tau = 1){//sumas de las raices n+1-esimas del dato n
   //perdon pero la que sugirieron con 10 datos agarra valores ~10^13, se complica
   double total=0;
   for(int i=0;i<n;i++)total = total+pow(datos[i],1.0/(i+1));
   return total;
 }
 
-double wilks(vector<double> datos,int n=10){
-  double Like = 0;
-  return Like;
+double logLike(vector<double> datos,int n=10,double tau=1){
+  double ll = 0;
+  for(int i=0;i<n;i++){
+    ll += -datos[i]/tau-log(tau);
+  }
+  return ll;
 }
 
-void cinturon(double (*func)(vector<double>,int),string name, int n=10,int N=100000,bool debug=false){
+double wilks(vector<double> datos,int n=10,double tau = 1){
+  double prom = promedio(datos,n,tau);
+  return -2*logLike(datos,n,tau)+2*logLike(datos,n,prom);
+}
+
+void cinturon(double (*func)(vector<double>,int,double),string name,TGraph*& gUp, TGraph*& gDown, int n=10,int N=100000,bool debug=false){
   string pdfName = string("intervalo_");
   pdfName += name;
   pdfName += string(".pdf");
@@ -32,8 +40,7 @@ void cinturon(double (*func)(vector<double>,int),string name, int n=10,int N=100
   gStyle->SetPadTickX(1);      // right ticks also
   gStyle->SetPadTickY(1);      // upper ticks also
   gStyle->SetHistLineWidth(2); // thickrr histo lines
-  cout.precision(4);
-  cout<<fixed;
+  
 
   auto c1 = new TCanvas("c1","Cinturon de confianza",700,1000);
   c1->Print(pdfBegin.c_str(),"pdf");
@@ -47,7 +54,7 @@ void cinturon(double (*func)(vector<double>,int),string name, int n=10,int N=100
       for(int i = 0; i < n; i++){
         x[i] = r.Exp(tau);
       }
-      stat[toy] = func(x,n);
+      stat[toy] = func(x,n,tau);
 
     }
     //Mas lento pero asi tengo bin edges dinamicos
@@ -108,12 +115,66 @@ void cinturon(double (*func)(vector<double>,int),string name, int n=10,int N=100
   gLows->Draw("same");
   c1->Print(pdfEnd.c_str(),"pdf");
   c1->Clear();
+  gUp = gHighs;
+  gDown = gLows;
   //TODO
   //Chequear cobertura
   //Hacer lo de -2LnLog(Like/OptLike)
 }
 
+void coverage(double (*func)(vector<double>,int,double),string name,TGraph* gUp,TGraph* gDown,int N=10000,int n=10){
+  TRandom3 r(0);
+  double taus[100];
+  for (int i =0;i<100;i++)taus[i] = gUp->GetY()[i];
+  vector<double> x(n);
+  double coverages[100];
+  double erx[100];
+  double errores[100];
+  double tau;
+  double stat[N];
+  double abajo;
+  double arriba;
+  for(int i=0;i<100;i++){
+    coverages[i] = 0;
+    tau = taus[i];
+    for(int toy = 0; toy<N; toy++){  
+      for(int i = 0; i < n; i++){
+        x[i] = r.Exp(tau);
+      }
+      stat[toy] = func(x,n,tau);
+      if(name!=string("wilks")){  
+        abajo = min(gDown->Eval(stat[toy]),gUp->Eval(stat[toy]));
+        arriba = max(gDown->Eval(stat[toy]),gUp->Eval(stat[toy]));
+        if(abajo<tau && tau<arriba)coverages[i]++;
+      }
+      //Calculo ad-hoc despues de ver el intervalo porque si no la extrapolacion de TGraph.Eval() lo arruina
+      else if(stat[toy]<=1)coverages[i]++;
+    }
+    erx[i] = 0;
+    errores[i] = pow(coverages[i],0.5);
+    errores[i] = errores[i]/N;
+    coverages[i] = coverages[i]/N;
+  }
+  auto Cov_vs_tau = new TGraphErrors(100,taus,coverages,erx,errores);
+  auto c2 = new TCanvas("c2","Cobertura vs tau",700,1000);
+  Cov_vs_tau->Draw();
+  string gName = string("Cobertura_");
+  gName+=name;
+  Cov_vs_tau->SetTitle(gName.c_str());
+  gName+= string(".pdf");
+  c2->Print(gName.c_str(),"pdf");
+}
+
 void intervalo(){
-  cinturon(&promedio,string("promedio"));
-  cinturon(&mierda,string("mierda"));
+  cout.precision(4);
+  cout<<fixed;
+  gROOT->SetBatch(kTRUE);
+  auto gUp = new TGraph(100);
+  auto gDown = new TGraph(100);
+  //cinturon(&promedio,string("promedio"),gUp,gDown);
+  //coverage(&promedio,string("promedio"),gUp,gDown);
+  //cinturon(&mierda,string("mierda"),gUp,gDown);
+  //coverage(&mierda,string("mierda"),gUp,gDown);
+  cinturon(&wilks,string("wilks"),gUp,gDown);
+  coverage(&wilks,string("wilks"),gUp,gDown);
 }
